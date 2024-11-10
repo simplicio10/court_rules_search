@@ -1,18 +1,43 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import os
 import requests
-from datetime import datetime
+from urllib.parse import urljoin
 
 url = "https://www.uscourts.gov/rules-policies/current-rules-practice-procedure"
 
-def download_pdf(pdf_link: str, file_url: str, output_dir: str='test_files') -> None:
-    os.makedirs(output_dir, exist_ok=True)
+def download_pdf(pdf_link: str, filename: str, output_dir: str='test_files') -> None:
+    print(f"Attempting {pdf_link}")
+    try:
+        os.makedirs(output_dir, exist_ok=True)
 
-    filename = ' '.join(pdf_link.strip())
+        response = requests.get(pdf_link, stream=True)
+        response.raise_for_status()
+
+        output_path = os.path.join(output_dir, filename)
+        print(f"Saving to: {output_path}")
+
+        with open(output_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+
+        return {
+            'filename': filename,
+            'url': pdf_link,
+            'status': 'success',
+            'path': output_path
+        }
+    except Exception as e:
+        print(f"Error downloading {filename}: {str(e)}")  # Debug print
+        return {
+            'filename': filename,
+            'url': pdf_link,
+            'status': 'error',
+            'error': str(e)
+        }
+
 
 def strip_html(html_text: None) -> str:
     icon = html_text.find('i')
@@ -46,17 +71,25 @@ def download_fed_rules(url: str) -> None:
     links = soup.find('div', class_='content')
     pdf_links = links.find_all('a', class_='download-link')
 
+    results = []
+
     for html in pdf_links:
-        href = soup.get('href')
-        full_url = f'{url}{href}'
+        href = html.get('href')
+        full_url = urljoin(url, href)
 
         rules_name = strip_html(html)
+        print(rules_name)
         filename = create_filename(rules_name)
 
-        print(filename)
+        result = download_pdf(full_url, filename)
 
-        
+        results.append(result)
+        print(f"Downloaded: {filename}" if result['status'] == 'success' else 
+              f"Error downloading {filename}: {result.get('error')}")
 
+
+    driver.quit()
+    return results
 
 if __name__ == "__main__":
     download_fed_rules(url)
