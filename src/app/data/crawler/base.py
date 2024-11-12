@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
-from utils import get_logger
+from app.utils.logging_utils import get_logger
 
 
 class BaseCrawler(ABC):
@@ -76,6 +76,7 @@ class BaseCrawler(ABC):
                             status="success")
             
             return True
+        
         except requests.exception.RequestException as e:
             self._log_download_error(e, url, filename, "request_error")
             return False
