@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from base import BaseCrawler
 
 class FederalRulesCrawler(BaseCrawler):
-    def parse_page(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
+    def _parse_page_impl(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
         links = soup.find('div', class_='content')
         pdf_links = links.find_all('a', class_='download-link')
 
