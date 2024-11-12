@@ -2,63 +2,60 @@ from abc import ABC, abstractmethod
 from typing import List, Dict
 import os
 import requests
-from urllib.parse import urljoin
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
-from app.utils.logging_utils import get_logger
+from app.utils.logging_utils import LoggingMixin
 
 
-class BaseCrawler(ABC):
+class BaseCrawler(ABC, LoggingMixin):
     def __init__(self, output_dir: str = 'test_files') -> None: #`test_files`is temporary data store 
+        super().__init__() #Initializes logging
         self.output_dir = output_dir
-        self.logger = get_logger(self.__class__.__name__)
         self._setup_driver()
 
     def _setup_driver(self) -> None:
         """Initialize Selenium Driver with default options"""
-        try:
+        with self._log_operation("webdriver_initialization") as log:
             options = Options()
             options.add_argument("--headless=new")
             self.driver = webdriver.Chrome(options=options)
-        except Exception as e:
-            self.logger.error("webdriver_initialization_failed", error=str(e))
-            raise
 
     def __enter__(self):
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cleanup()
-
-    #Refactor with generic logging class
-    def _log_download_error(self, error: Exception, url: str, filename: str = None, error_type: str = "unexpected_error") -> None:
-        self.logger.error("download_failed",
-                              url=url,
-                              filename=filename,
-                              error=str(error),
-                              error_type=error_type)
     
     def cleanup(self) -> None:
         if hasattr(self, 'driver'):
-            try:
+            with self._log_operation("webdriver_cleanup") as log:
+                log.update({
+                    "session_id": getattr(self.driver.session_id),
+                    "had_session": hasattr(self.driver, "session_id")})
                 self.driver.quit()
-                self.logger.info("webdriver_cleanup", status="success")
-            except Exception as e:
-                self.logger.error("webdriver_cleanup_failed", error=str(e))
+                
+                self.driver = None
 
-    @abstractmethod
     def parse_page(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
+        with self._log_operation("page_parse") as log:
+            documents = self._parse_page_impl(soup)
+            log.update({"document_count": len(documents)})
+            return documents
+    
+    @abstractmethod
+    def _parse_page_impl(self, soup: BeautifulSoup) -> List[Dict[str, str]]:
         pass
 
     def download_file(self, url: str, filename: str) -> bool:
-        try:
-            os.makedirs(self.output_dir, exist_ok=True)
+        with self._log_operation("download") as log:
+            log.update({
+                "url": url,
+                "filename": filename,
+                "output_dir": self.output_dir
+            })
 
-            self.logger.info("download_started",
-                             url=url,
-                             filename=filename,
-                             output_dir=self.output_dir)
+            os.makedirs(self.output_dir, exist_ok=True)
 
             response = requests.get(url, stream=True)
             response.raise_for_status()
@@ -69,36 +66,13 @@ class BaseCrawler(ABC):
                     if chunk:
                         f.write(chunk)
             
-            self.logger.info("download_completed",
-                            url=url,
-                            filename=filename,
-                            path=output_path,
-                            status="success")
+            log.update({"path": output_path})
             
             return True
         
-        except requests.exception.RequestException as e:
-            self._log_download_error(e, url, filename, "request_error")
-            return False
-        
-        except IOError as e:
-            self._log_download_error(e, url, filename, "io_error")
-            return False
-        
-        except Exception as e:
-            self._log_download_error(e, url, filename)
-            return False
-        
     def get_page_content(self, url: str) -> BeautifulSoup:
-        try:
-            self.logger.info("fetching_page", url=url)
+        with self._log_operation("page_fetch") as log:
+            log.update({"url": url})
             self.driver.get(url)
             self.driver.implicitly_wait(2)
-            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-            self.logger.info("page_fetched", url=url, status="success")
-            return soup
-        except Exception as e:
-            self.logger.error("page_fetch_failed",
-                              url=url,
-                              error=str(e))
-            raise
+            return BeautifulSoup(self.driver.page_source, 'html.parser')
