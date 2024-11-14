@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Any, Self
+from typing import Any
 
 import requests
 from app.utils.logging_utils import LoggingMixin
@@ -32,7 +32,7 @@ class BaseCrawler(ABC, LoggingMixin):
                 }
             )
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> "BaseCrawler":
         return self
 
     def __exit__(
