@@ -4,7 +4,8 @@ from contextlib import contextmanager
 from typing import Any, TypeVar
 
 from structlog.typing import WrappedLogger
-from utils import get_logger
+
+from .get_logger import get_logger
 
 T = TypeVar("T", bound=WrappedLogger)
 

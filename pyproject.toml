@@ -43,12 +43,31 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["court_rules_search*"]
+include = ["app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "--cov=court_rules_search --cov-report=term-missing"
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = """
+    --cov=court_rules_search
+    --cov-report=term-missing
+    --cov-report=html
+    --verbose
+    """
+markers = [
+    "integration: tests that require setup",
+    "crawler: tests basic web crawling functions",
+    "smoke: tests basic CI functions",
+    "slow: marks slow tests (e.g., PDF downloads)"
+]
+log_cli = "true"
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+#[tool.coverage.run] - Need to update to v3.11?
 
 [tool.ruff]
 line-length = 95
@@ -105,7 +124,7 @@ convention = "google"
 "__init__.py" = ["F401"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

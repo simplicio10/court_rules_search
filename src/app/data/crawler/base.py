@@ -3,10 +3,11 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import requests
-from app.utils.logging_utils import LoggingMixin
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+
+from ...utils.logging_utils import LoggingMixin
 
 
 class BaseCrawler(ABC, LoggingMixin):
@@ -14,7 +15,7 @@ class BaseCrawler(ABC, LoggingMixin):
         # `test_files`is temporary data store
         super().__init__()  # Initializes logging
         self.output_dir: str = output_dir
-        self.driver: webdriver.Chrome | None = output_dir
+        self.driver: webdriver.Chrome | None = None
         self._setup_driver()
 
     def _setup_driver(self) -> None:
