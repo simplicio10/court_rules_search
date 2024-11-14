@@ -1,0 +1,137 @@
+[project]
+name = "court_rules_search"
+version = "0.1.0"
+description = "Legal rules processing and search engine"
+authors = [{ name = "Tex Pasley", email = "claypas@gmail.com" }]
+requires-python = ">=3.10"
+readme = "README.md"
+
+dependencies = [
+    "beautifulsoup4>=4.12.3",
+    "selenium>=4.26.1",
+    "requests>=2.31.0",
+    "structlog>=24.1.0",
+    "rdflib>=7.0.0",
+    "neo4j>=5.14.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.2.1",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+    "types-requests>=2.31.0",
+    "types-beautifulsoup4>=4.12.0",
+    "types-selenium>=3.141.9",
+]
+nlp = [
+    "spacy>=3.7.0",
+    "transformers>=4.37.0",
+    "torch>=2.2.0",
+]
+vector = [
+    "numpy>=1.26.0",
+    "scipy>=1.12.0",
+    "scikit-learn>=1.4.0",
+]
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["court_rules_search*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "--cov=court_rules_search --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 95
+target-version = "py311"
+
+# Enable Pyflakes (`F`), isort (`I`), pycodestyle (`E`, `W`), flake8-bugbear (`B`)
+select = ["E", "F", "I", "W", "B", "D", "UP"]
+ignore = ["D203", "D212"]
+
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I", "N", "UP", "PL", "RUF"]
+ignore = []
+
+[tool.ruff.mccabe]
+max-complexity = 10
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["D"]
+"__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+exclude = [
+    'tests/'
+]
+
+[tool.coverage.run]
+source = ["court_rules_search"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise ImportError",
+]

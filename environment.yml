@@ -1,8 +1,0 @@
-name: court-rules-search
-channels:
-  - conda-forge
-  - defaults
-dependencies:
-  -python>=3.11
-  -selenium==4.26.1
-  -beautifulsoup4==4.12.3
