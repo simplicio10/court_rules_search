@@ -3,11 +3,10 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import requests
+from app.utils.logging_utils import LoggingMixin
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-
-from ...utils.logging_utils import LoggingMixin
 
 
 class BaseCrawler(ABC, LoggingMixin):
