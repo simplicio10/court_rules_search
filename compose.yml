@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+      - ./.git:/app/.git
+      - ./data:/app/data
+      - python-packages:/opt/venv
+    environment:
+      - PYTHONPATH=/app/services
+      - PYTHONNUNBUFFERED=1
+      - GIT_AUTHOR_NAME=Tex Pasley
+      - GIT_AUTHOR_EMAIL=claypas@gmail.com
+    command: /bin/bash
+    tty: true
+    stdin_open: true
+
+  #Add Neo4j service
+
+volumes:
+  python-packages:

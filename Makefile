@@ -1,24 +1,19 @@
-.PHONY: venv install dev test lint clean help test-unit test-integration test-coverage
+.PHONY: build up down shell install dev test lint clean help test-unit test-integration test-coverage
 
 # Variables
-VENV_DIR = .venv
-PYTHON = python3
+DOCKER_COMPOSE = docker compose
+DOCKER_APP = $(DOCKER_COMPOSE) exec app
 SHELL := /bin/bash
 PYTEST_FLAGS = -v
 COVERAGE_FLAGS = --cov=court_rules_search --cov-report=term-missing --cov-report=html
 TEST_DIR = tests
 
-.ONESHELL:
-
-define activate_venv
-	. $(VENV_DIR)/bin/activate && \
-	pip install --upgrade pip && \
-	$(1)
-endef
-
 help:
 	@echo "Available commands:"
-	@echo "  make venv       - Create virtual environment"
+	@echo "  make build     - Build Docker images"
+	@echo "  make up        - Start Docker containers"
+	@echo "  make down      - Stop Docker containers"
+	@echo "  make shell     - Open shell in app container"
 	@echo "  make install    - Install package and dependencies"
 	@echo "  make dev        - Set up complete development environment"
 	@echo "  make test       - Run tests"
@@ -31,81 +26,89 @@ help:
 	@echo "  make clean      - Remove build artifacts and cache files"
 	@echo "  make clean-venv - Remove virtual environment"
 
-venv:
-	@echo "Creating virtual environment..."
-	@if [ ! -d "$(VENV_DIR)" ]; then \
-		$(PYTHON) -m venv $(VENV_DIR); \
-	fi
+build:
+	@echo "Building Docker images..."
+	$(DOCKER_COMPOSE) build
 
-install: venv
+up:
+	@echo "Starting Docker containers..."
+	$(DOCKER_COMPOSE) up -d
+
+down:
+	@echo "Stopping Docker containers..."
+	$(DOCKER_COMPOSE) down
+
+shell:
+	@echo "Opening shell in app container..."
+	$(DOCKER_APP) /bin/bash
+
+install:
 	@echo "Installing dependencies..."
-	@source $(VENV_DIR)/bin/activate && \
-	pip install --upgrade pip && \
-	pip install -e ".[dev,nlp,vector]"
+	$(DOCKER_APP) pip install -e ".[dev,nlp,vector]"
 
-dev: venv install
+dev:
 	@echo "Setting up development environment..."
-	@source $(VENV_DIR)/bin/activate && \
-	pip install pre-commit && \
-	pre-commit install
+	@git config --unset-all core.hooksPath || true
+	$(DOCKER_APP) git config --global user.name "$$GIT_AUTHOR_NAME"
+	$(DOCKER_APP) git config --global user.email "$$GIT_AUTHOR_EMAIL"
+	$(DOCKER_APP) pre-commit install --install-hooks
+	@mkdir -p .git/hooks
+	@echo '#!/bin/bash' > .git/hooks/pre-commit
+	@echo 'docker compose exec -T app pre-commit run --files $$(git diff --cached --name-only)' >> .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit
+	@echo "Git hooks installed"
 
-test: venv
+test:
 	@echo "Running tests..."
-	@source $(VENV_DIR)/bin/activate && \
-	pytest $(PYTEST_FLAGS) $(COVERAGE_FLAGS) $(TEST_DIR)
+	$(DOCKER_APP) pytest $(PYTEST_FLAGS) $(COVERAGE_FLAGS) $(TEST_DIR)
 
-test-unit: venv
+test-unit:
 	@echo "Running unit tests..."
-	@source $(VENV_DIR)/bin/activate && \
-	pytest $(PYTEST_FLAGS) $(COVERAGE_FLAGS) -m "not integration" $(TEST_DIR)
+	$(DOCKER_APP) pytest $(PYTEST_FLAGS) $(COVERAGE_FLAGS) -m "not integration" $(TEST_DIR)
 
-test-integration: venv
+test-integration:
 	@echo "Running integration tests..."
-	@source $(VENV_DIR)/bin/activate && \
-	pytest $(PYTEST_FLAGS) $(COVERAGE_FLAGS) -m "integration" $(TEST_DIR)
+	$(DOCKER_APP) pytest $(PYTEST_FLAGS) $(COVERAGE_FLAGS) -m "integration" $(TEST_DIR)
 
-test-crawler: venv
+test-crawler:
 	@echo "Running crawler tests..."
-	@source $(VENV_DIR)/bin/activate && \
-	pytest $(PYTEST_FLAGS) $(COVERAGE_FLAGS) -m "crawler" $(TEST_DIR)
+	$(DOCKER_APP) pytest $(PYTEST_FLAGS) $(COVERAGE_FLAGS) -m "crawler" $(TEST_DIR)
 
-test-smoke: venv
+test-smoke:
 	@echo "Running smoke tests..."
-	@source $(VENV_DIR)/bin/activate && \
-	pytest $(PYTEST_FLAGS) -m "smoke" $(TEST_DIR)
+	$(DOCKER_APP) pytest $(PYTEST_FLAGS) -m "smoke" $(TEST_DIR)
 
-test-coverage: venv
+test-coverage:
 	@echo "Generating coverage report..."
-	@source $(VENV_DIR)/bin/activate && \
-	pytest $(PYTEST_FLAGS) $(COVERAGE_FLAGS) $(TEST_DIR) && \
-	coverage html && \
+	$(DOCKER_APP) pytest $(PYTEST_FLAGS) $(COVERAGE_FLAGS) $(TEST_DIR)
 	echo "Coverage report generated in htmlcov/index.html"
 
-lint: venv
+lint:
 	@echo "Running linters..."
-	@source $(VENV_DIR)/bin/activate && \
-	ruff check . && \
-	ruff format . && \
-	mypy .
+	$(DOCKER_APP) ruff check .
+	$(DOCKER_APP) ruff format .
+	$(DOCKER_APP) mypy .
 
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -rf build/
-	rm -rf dist/
-	rm -rf *.egg-info/
-	rm -rf .pytest_cache/
-	rm -rf .ruff_cache/
-	rm -rf .mypy_cache/
-	rm -rf htmlcov/
-	rm -rf .coverage
-	rm -rf .coverage.*
-	find . -type d -name __pycache__ -exec rm -rf {} +
-	find . -type f -name "*.pyc" -delete
-	find . -type f -name "*.pyo" -delete
-	find . -type f -name ".coverage" -delete
+	$(DOCKER_APP) rm -rf build/
+	$(DOCKER_APP) rm -rf dist/
+	$(DOCKER_APP) rm -rf *.egg-info/
+	$(DOCKER_APP) rm -rf .pytest_cache/
+	$(DOCKER_APP) rm -rf .ruff_cache/
+	$(DOCKER_APP) rm -rf .mypy_cache/
+	$(DOCKER_APP) rm -rf htmlcov/
+	$(DOCKER_APP) rm -rf .coverage
+	$(DOCKER_APP) rm -rf .coverage.*
+	$(DOCKER_APP) find . -type d -name __pycache__ -exec rm -rf {} +
+	$(DOCKER_APP) find . -type f -name "*.pyc" -delete
+	$(DOCKER_APP) find . -type f -name "*.pyo" -delete
+	$(DOCKER_APP) find . -type f -name ".coverage" -delete
 
-clean-venv:
-	@echo "Removing virtual environment..."
-	rm -rf $(VENV_DIR)
-
-reset: clean clean-venv dev
+reset: down
+	@echo "Performing full cleanup and rebuild..."
+	$(DOCKER_COMPOSE) down -v
+	docker system prune -f
+	$(MAKE) build
+	$(MAKE) up
+	$(MAKE) dev

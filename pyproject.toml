@@ -29,8 +29,8 @@ dev = [
 ]
 nlp = [
     "spacy>=3.7.0",
-    "transformers>=4.37.0",
-    "torch>=2.2.0",
+    #"transformers>=4.37.0",
+    #"torch>=2.2.0",
 ]
 vector = [
     "numpy>=1.26.0",
